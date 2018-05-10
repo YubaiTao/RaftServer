@@ -3,6 +3,7 @@ package utility
 import (
 	"../raft"
 	"sync"
+	"fmt"
 )
 
 // Global(static) server peers addr array
@@ -61,6 +62,21 @@ func Make_config(index int) *Config {
 func (cfg *Config) One(cmd interface{}) {
 	// TODO: wrapper for rf.Start(cmd)
 	cfg.rf.Start(cmd)
+}
+
+func (cfg *Config) ShowLeader() {
+	// raft.GetState() : (int: rf.currentTerm, rf.role)
+	cterm, crole := cfg.rf.GetState()
+	fmt.Println("Current Term: ", cterm)
+	if crole == true {
+		fmt.Println("I am the leader.")
+	} else {
+		fmt.Println("I ain't the leader.")
+	}
+}
+
+func (cfg *Config) GetLeader() {
+	fmt.Println("Leader: ", cfg.rf.GetLeader())
 }
 
 func (cfg *Config) ShowLog() {

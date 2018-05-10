@@ -210,7 +210,7 @@ func (rf *Raft) readSnapshot(data []byte) {
 	rf.chanCommitted <- msg
 }
 
-func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshotReply) {
+func (rf *Raft) InstallSnapshot(ctx context.Context,args InstallSnapshotArgs, reply *InstallSnapshotReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
@@ -413,9 +413,13 @@ func (rf *Raft) sendRequestVote(server int, args RequestVoteArgs, reply *Request
 //
 func (rf *Raft) AppendEntries(ctx context.Context, args AppendEntriesArgs, reply *AppendEntriesReply) error {
 	// Your code here.
+	// reply.NextIndex = 111
+	// return nil
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
+
+	// fmt.Println("AppendEntries @: ", rf.me)
 
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
@@ -596,7 +600,7 @@ func (rf *Raft) doAppendEntries(server int) {
 				rf.DoAppendEntriesReply(server, args, reply)
 				return
 			} else {
-				//DPrintf("doAppendEntries: no reply from follower [%d]", server)
+				fmt.Println("doAppendEntries: no reply from follower [%d]", server)
 			}
 		}
 	}
@@ -730,6 +734,7 @@ func Make(peers []*ClientEnd, me int,
 
 func (rf *Raft) changeRole() {
 	role := rf.role
+	fmt.Println("changeRole @: ", rf.me)
 	for true {
 		switch role {
 		case Leader:
@@ -810,6 +815,7 @@ func (rf *Raft) updateFollowCommit(leaderCommit int, lastIndex int) {
 // repeat during idle periods to prevent election timeout
 //
 func (rf *Raft) doHeartbeat() {
+	fmt.Println("doHeartBeat @:", rf.me)
 	for index := range rf.peers {
 		if index == rf.me {
 			go func() {
@@ -835,6 +841,7 @@ func (rf *Raft) doHeartbeat() {
 }
 
 func (rf *Raft) startElection(chanQuitElect chan bool) {
+	fmt.Println("startElection @:" , rf.me)
 	// 1. increment current term
 	// 2. vote for self
 	// 3. reset election timer
@@ -901,6 +908,7 @@ func (rf *Raft) startElection(chanQuitElect chan bool) {
 }
 
 func (rf *Raft) startElectTimer() {
+	fmt.Println("startElectTimer @: ", rf.me)
 	floatInterval := int(RaftElectionTimeoutHigh - RaftElectionTimeoutLow)
 	timeout := time.Duration(rand.Intn(floatInterval)) + RaftElectionTimeoutLow
 	electTimer := time.NewTimer(timeout)
@@ -917,6 +925,7 @@ func (rf *Raft) startElectTimer() {
 }
 
 func (rf *Raft) resetElectTimer(timer *time.Timer) {
+	fmt.Println("resetElectTimer @: ", rf.me)
 	floatInterval := int(RaftElectionTimeoutHigh - RaftElectionTimeoutLow)
 	timeout := time.Duration(rand.Intn(floatInterval)) + RaftElectionTimeoutLow
 	timer.Reset(timeout)
@@ -926,4 +935,8 @@ func (rf *Raft) Dull(ctx context.Context, arg string, reply *string) error {
 	*reply = "DULL " + arg
 	fmt.Println("DULL called.")
 	return nil
+}
+
+func (rf *Raft) GetLeader() int {
+	return rf.leaderId
 }
