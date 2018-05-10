@@ -1,25 +1,23 @@
 package utility
 
 import (
-	"raft"
-	"github.com/smallnest/rpcx/client"
-	"context"
+	"../raft"
 	"sync"
 )
 
 // Global(static) server peers addr array
-var PeerAddrs = [...]string{"localhost:8971",
-                        "localhost:8972",
-                        "localhost:8973", }
-
-var Peer_n = 3
+//var PeerAddrs = [...]string{"localhost:8971",
+//                        "localhost:8972",
+//                        "localhost:8973", }
+//
+//var Peer_n = 3
 
 // save each Raft server instance
-type ClientEnd struct {
-	// endname = PeerAddrs[endindex]
-	endIndex int // corresponding to the peers array
-	addr string
-}
+//type ClientEnd struct {
+//	// endname = PeerAddrs[endindex]
+//	endIndex int // corresponding to the peers array
+//	addr string
+//}
 
 type Config struct {
 	mu sync.Mutex
@@ -37,12 +35,12 @@ type Config struct {
 //}
 
 // return the ClientEnd peers as 'raft.Make' parameter
-func getClientPeers() []*ClientEnd{
-	cep := make([]*ClientEnd, Peer_n)
-	for i := 0; i < Peer_n; i++ {
-		cep[i] = &ClientEnd{}
-		cep[i].endIndex = i
-		cep[i].addr = PeerAddrs[i]
+func getClientPeers() []*raft.ClientEnd{
+	cep := make([]*raft.ClientEnd, raft.Peer_n)
+	for i := 0; i < raft.Peer_n; i++ {
+		cep[i] = &raft.ClientEnd{}
+		cep[i].EndIndex = i
+		cep[i].Addr = raft.PeerAddrs[i]
 	}
 	return cep
 }
@@ -75,19 +73,20 @@ func (cfg *Config) ShowLog() {
 // Call inside Raft instance, to revoke an RPC to Raft instance on other server
 // send an RPC, wait for the reply,
 // and return value indicates success; false means the server couldn't be contacted.
-func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
-	// call self
-	// if e.endIndex == cfg.endIndex {
-		//return false
-	// }
-	d := client.NewPeer2PeerDiscovery("tcp@" + PeerAddrs[e.endIndex], "")
-	xclient := client.NewXClient("Raft", client.Failtry, client.RandomSelect, d, client.DefaultOption)
-	err := xclient.Call(context.Background(), svcMeth, args, reply)
-	defer xclient.Close()
-	if err != nil {
-		return false
-	}
-	// err := xclient.Call(context.Background(), "Dull", &args, &reply)
 
-	return true
-}
+//func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
+//	// call self
+//	// if e.endIndex == cfg.endIndex {
+//		//return false
+//	// }
+//	d := client.NewPeer2PeerDiscovery("tcp@" + PeerAddrs[e.endIndex], "")
+//	xclient := client.NewXClient("Raft", client.Failtry, client.RandomSelect, d, client.DefaultOption)
+//	err := xclient.Call(context.Background(), svcMeth, args, reply)
+//	defer xclient.Close()
+//	if err != nil {
+//		return false
+//	}
+//	// err := xclient.Call(context.Background(), "Dull", &args, &reply)
+//
+//	return true
+//}

@@ -15,7 +15,7 @@ package raft
 
 import "sync"
 import (
-	"../utility"
+	// "../utility"     import cycle
 	"time"
 	"math/rand"
 	"bytes"
@@ -23,6 +23,8 @@ import (
 	"os"
 	"runtime/debug"
 	"context"
+	"github.com/smallnest/rpcx/client"
+	"fmt"
 )
 
 const RaftElectionTimeoutLow = 150 * time.Millisecond
@@ -36,6 +38,37 @@ const (
 	Candidate  			= 1
 	Leader 				= 2
 )
+
+var PeerAddrs = [...]string{"localhost:8971",
+	"localhost:8972",
+	"localhost:8973", }
+
+var Peer_n = 3
+
+
+// avoid import cycle
+type ClientEnd struct {
+	// endname = PeerAddrs[endindex]
+	EndIndex int // corresponding to the peers array
+	Addr string
+}
+
+func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
+	// call self
+	// if e.endIndex == cfg.endIndex {
+	//return false
+	// }
+	d := client.NewPeer2PeerDiscovery("tcp@" + PeerAddrs[e.EndIndex], "")
+	xclient := client.NewXClient("Raft", client.Failtry, client.RandomSelect, d, client.DefaultOption)
+	err := xclient.Call(context.Background(), svcMeth, args, reply)
+	defer xclient.Close()
+	if err != nil {
+		return false
+	}
+	// err := xclient.Call(context.Background(), "Dull", &args, &reply)
+
+	return true
+}
 
 //
 // as each Raft peer becomes aware that successive log entries are
@@ -61,7 +94,8 @@ type LogEntry struct {
 //
 type Raft struct {
 	mu          sync.Mutex
-	peers       []*utility.ClientEnd
+	// peers       []*utility.ClientEnd
+	peers       []*ClientEnd
 	persister   *Persister
 	me          int // index into peers[]
 
@@ -649,7 +683,8 @@ func (rf *Raft) Kill() {
 // recent saved state, if any. applyCh is a channel on which the
 // tester or service expects Raft to send ApplyMsg messages.
 //
-func Make(peers []*utility.ClientEnd, me int,
+// func Make(peers []*utility.ClientEnd, me int,
+func Make(peers []*ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
 	rf.peers = peers
@@ -887,7 +922,8 @@ func (rf *Raft) resetElectTimer(timer *time.Timer) {
 	timer.Reset(timeout)
 }
 
-func (rf *Raft) Dull(ctx context.Context, arg *string, reply *string) error {
-	*reply = "DULL " + *arg
+func (rf *Raft) Dull(ctx context.Context, arg string, reply *string) error {
+	*reply = "DULL " + arg
+	fmt.Println("DULL called.")
 	return nil
 }
